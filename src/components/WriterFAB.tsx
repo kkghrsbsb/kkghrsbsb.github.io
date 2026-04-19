@@ -301,7 +301,7 @@ export default function WriterFAB() {
         onClick={handleLogin}
         title={isDev ? '站长登录（dev）' : '站长登录'}
         style={{
-          position: 'fixed', bottom: '1.5rem', right: '1.5rem',
+          position: 'fixed', bottom: '1.5rem', left: '1.5rem',
           width: '2.5rem', height: '2.5rem', borderRadius: '9999px',
           background: 'transparent',
           border: '1px solid color-mix(in oklab, currentColor 20%, transparent)',
@@ -324,7 +324,7 @@ export default function WriterFAB() {
         onClick={() => setOpen(!open)}
         title="写文章"
         style={{
-          position: 'fixed', bottom: '1.5rem', right: '1.5rem',
+          position: 'fixed', bottom: '1.5rem', left: '1.5rem',
           width: '3rem', height: '3rem', borderRadius: '9999px',
           background: 'var(--foreground)', color: 'var(--background)',
           border: 'none', cursor: 'pointer', display: 'flex',

@@ -1,0 +1,142 @@
+---
+name: 用 GitHub OAuth + Cloudflare Worker KV 给静态博客加鉴权
+description: 博客写作入口开发总结，重点记录 GitHub OAuth 流程和 Cloudflare Worker KV 的使用
+type: note
+---
+
+# 用 GitHub OAuth + Cloudflare Worker KV 给静态博客加鉴权
+
+起因是想在博客上加一个写作入口——右下角一个悬浮按钮，登录后可以直接在浏览器里写文章、上传图片，提交到 GitHub 仓库，CI 自动构建发布。听起来不复杂，但静态博客没有后端，不能直接处理 OAuth 换 token，也不能暴露 GitHub 的 Client Secret。于是引入了 Cloudflare Worker 作为中间层。
+
+---
+
+## GitHub OAuth 是怎么工作的
+
+GitHub OAuth 走的是标准的 Authorization Code Flow，分三步：
+
+1. **前端重定向到 GitHub 授权页**，带上 `client_id`、`scope`、`state`（防 CSRF 的随机串）、`redirect_uri`
+2. **用户授权后，GitHub 回调 `redirect_uri`**，在 URL 里带上 `code` 和 `state`
+3. **用 `code` 换 `access_token`**，这一步需要 `client_secret`，必须在后端做
+
+第三步就是问题所在。Client Secret 不能出现在前端代码里，所以需要一个后端来做这个换 token 的动作。我用 Cloudflare Worker 的 `/exchange` 接口接收 `code`，在 Worker 里用 secret 换 token，然后把 token 存到 KV，只把 `session_id` 返回给前端。
+
+前端整个流程是：
+- 点登录 → 生成随机 `state` 存 sessionStorage → 跳转 GitHub
+- GitHub 回调 → 验证 `state` 一致 → 把 `code` POST 给 Worker
+- Worker 换 token，存 KV，返回 `session_id`
+- 前端把 `session_id` 存 localStorage，后续每次操作带上它
+
+**踩坑：OAuth 回调 URL 的 trailing slash**
+
+我的博客用 Caddy 做反向代理，Caddy 对没有 trailing slash 的路径会 301 重定向并加上 `/`，但重定向时会丢掉 query string，导致 `?code=xxx&state=xxx` 全部丢失。
+
+调试方法：在回调页把 `code` 和 `state` 都打印出来，结果显示 `code=null | state=null`，说明 URL 参数根本没到页面。
+
+解法很简单：`redirect_uri` 末尾加 `/`，让 Caddy 不触发重定向。
+
+---
+
+## Cloudflare Worker KV 是什么
+
+KV 是 Cloudflare 提供的全局分布式键值存储，可以在 Worker 里直接读写，非常适合存 session。
+
+**创建 KV namespace：**
+
+```bash
+wrangler kv namespace create SESSIONS
+```
+
+会返回一个 namespace ID，填到 `wrangler.toml` 里：
+
+```toml
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+```
+
+**在 Worker 里用：**
+
+```js
+// 写入，TTL 7 天
+await env.SESSIONS.put(session_id, token, { expirationTtl: 7 * 24 * 3600 })
+
+// 读取
+const token = await env.SESSIONS.get(session_id)
+
+// 删除
+await env.SESSIONS.delete(session_id)
+```
+
+`env.SESSIONS` 就是绑定的 KV namespace，直接用，不需要额外 import。`expirationTtl` 单位是秒，到期自动清理，不用自己管。
+
+**敏感配置怎么放：**
+
+`client_id` 这种公开的放 `wrangler.toml` 的 `[vars]` 里没问题，但 `client_secret` 不能进代码仓库，用 wrangler secret：
+
+```bash
+wrangler secret put GITHUB_CLIENT_SECRET
+```
+
+命令行会提示输入值，之后在 Worker 里通过 `env.GITHUB_CLIENT_SECRET` 读取，不会出现在任何文件里。
+
+---
+
+## GitHub Contents API 提交文件
+
+用 Worker 代持 token 之后，提交文件走的是 GitHub REST API：
+
+```
+PUT /repos/{owner}/{repo}/contents/{path}
+```
+
+body 是：
+
+```json
+{
+  "message": "feat: add post",
+  "content": "<base64 编码的文件内容>"
+}
+```
+
+图片等二进制文件也一样，直接传 base64 就行。
+
+**踩坑：中文路径**
+
+文章目录带中文时，直接拼接 URL 会 400。GitHub API 要求路径里每一段都要 URL 编码：
+
+```js
+const encodedPath = path.split('/').map(encodeURIComponent).join('/')
+```
+
+不能直接 `encodeURIComponent(path)`，那会把 `/` 也编码掉。
+
+---
+
+## 整体架构回顾
+
+```
+浏览器（静态页面）
+  ↓ 1. 重定向到 GitHub OAuth
+GitHub
+  ↓ 2. 回调带 code
+浏览器
+  ↓ 3. POST code 给 Worker
+Cloudflare Worker
+  ↓ 4. 用 client_secret 换 token，存 KV
+  ↓ 5. 返回 session_id
+浏览器（localStorage 存 session_id）
+  ↓ 6. 写文章，带 session_id 提交给 Worker
+Cloudflare Worker
+  ↓ 7. 从 KV 取 token，调 GitHub API 提交文件
+GitHub 仓库 → CI 构建 → 博客更新
+```
+
+token 全程在 Worker 和 KV 里流转，浏览器只持有 session_id，即使 localStorage 被读也拿不到真正的 GitHub token。
+
+---
+
+## 待探索的问题
+
+- KV 是最终一致的，理论上极端情况下刚写入的 session 在另一个 edge 节点可能读不到——实际使用中暂时没遇到，但值得注意
+- Worker 现在没有限速，如果 session_id 泄露，理论上可以无限调用 GitHub API；可以加请求频率限制
+- 图片上传是逐张串行的，文章图片多时会慢，可以改并行

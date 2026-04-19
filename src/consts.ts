@@ -36,8 +36,8 @@ export const SOCIAL_LINKS: SocialLink[] = [
     label: 'Twitter',
   },
   {
-    href: '395508188@qq.com',
-    label: 'Email',
+    href: 'https://www.threads.net/@kkghrsbsb',
+    label: 'Threads',
   },
   {
     href: '/rss.xml',
@@ -49,7 +49,7 @@ export const ICON_MAP: IconMap = {
   Website: 'lucide:globe',
   GitHub: 'lucide:github',
   LinkedIn: 'lucide:linkedin',
-  Twitter: 'lucide:twitter',
-  Email: 'lucide:mail',
+  Twitter: 'simple-icons:x',
+  Threads: 'simple-icons:threads',
   RSS: 'lucide:rss',
 }
