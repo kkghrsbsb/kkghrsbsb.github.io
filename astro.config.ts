@@ -77,6 +77,10 @@ export default defineConfig({
     port: 1234,
     host: true,
   },
+  prefetch: {
+    prefetchAll: true,
+    defaultStrategy: 'hover',
+  },
   devToolbar: {
     enabled: false,
   },

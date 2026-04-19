@@ -3,6 +3,8 @@ import { Separator } from '@/components/ui/separator'
 import { SOCIAL_LINKS } from '@/consts'
 import Link from './Link.astro'
 import SocialIcons from './SocialIcons.astro'
+
+const isProd = import.meta.env.DEPLOY_TARGET === 'prod'
 ---
 
 <footer
@@ -10,21 +12,28 @@ import SocialIcons from './SocialIcons.astro'
 >
   <div class="flex flex-wrap items-center justify-center gap-x-2 text-center">
     <span class="text-muted-foreground text-sm">
-      &copy; {new Date().getFullYear()} copyright
+      &copy; 2025–{new Date().getFullYear()} Xinger Yao · 保留所有权利
+    </span>
+    <Separator orientation="vertical" className="hidden h-4! sm:block" />
+    <span class="text-muted-foreground text-sm">
+      未经授权禁止转载
     </span>
 
-    <Separator orientation="vertical" className="hidden h-4! sm:block" />
-
-    <p class="text-muted-foreground text-sm">
-      <a
-        href="https://beian.miit.gov.cn/"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="hover:text-foreground transition-colors"
-      >
-        沪ICP备2025152054号-1
-      </a>
-    </p>
+    {isProd && (
+      <>
+        <Separator orientation="vertical" className="hidden h-4! sm:block" />
+        <p class="text-muted-foreground text-sm">
+          <a
+            href="https://beian.miit.gov.cn/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="hover:text-foreground transition-colors"
+          >
+            沪ICP备2025152054号-1
+          </a>
+        </p>
+      </>
+    )}
   </div>
   <SocialIcons links={SOCIAL_LINKS} />
 </footer>

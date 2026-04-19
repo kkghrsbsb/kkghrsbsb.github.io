@@ -8,6 +8,8 @@ import { buttonVariants } from '@/components/ui/button'
 import { SITE } from '@/consts'
 import Layout from '@/layouts/Layout.astro'
 import { getRecentPosts } from '@/lib/data-utils'
+import { Image } from 'astro:assets'
+import taihuImg from '@/assets/page_media/taihu_miyuewan_16_9.jpg'
 
 const blog = await getRecentPosts(SITE.featuredPostCount)
 ---
@@ -27,12 +29,11 @@ const blog = await getRecentPosts(SITE.featuredPostCount)
 
     <figure class="frame">
       <div class="frame-paper">
-        <img
-          class="frame-img"
-          src="/page_media/taihu_miyuewan_16_9.jpg"
+        <Image
+          src={taihuImg}
           alt="In October 2025, I was at Mingyue Bay on Taihu Lake."
-          loading="lazy"
-          decoding="async"
+          class="frame-img"
+          fetchpriority="high"
         />
         <figcaption class="frame-cap">Taihu Lake</figcaption>
       </div>

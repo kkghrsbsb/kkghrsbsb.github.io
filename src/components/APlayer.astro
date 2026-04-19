@@ -9,12 +9,38 @@ const {
 } = Astro.props
 ---
 
-<APlayerClient
-  playlistId={playlistId}
-  server={server}
-  containerId={containerId}
-  client:only="react"
-/>
+<div id="aplayer-shell">
+  <APlayerClient
+    playlistId={playlistId}
+    server={server}
+    containerId={containerId}
+    client:only="react"
+  />
+</div>
+
+<style>
+  #aplayer-shell {
+    min-height: 102px;
+  }
+
+  #aplayer-shell:not(:has(.aplayer-info)) {
+    background: var(--background);
+  }
+
+  #aplayer-shell:has(.aplayer-info) {
+    animation: aplayer-fadein 0.3s ease-out;
+  }
+
+  @keyframes aplayer-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  @keyframes aplayer-fadein {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+</style>
 
 <style>
   :global(#aplayer.aplayer) {

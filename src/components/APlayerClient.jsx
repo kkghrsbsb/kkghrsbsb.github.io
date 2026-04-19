@@ -1,6 +1,27 @@
 import { useEffect, useRef } from 'react'
 import APlayer from 'aplayer'
 
+const LS_KEY_PREFIX = 'aplayer_cache:'
+const CACHE_TTL = 60 * 60 * 1000 // 1 hour
+
+function readCache(key) {
+  try {
+    const raw = localStorage.getItem(LS_KEY_PREFIX + key)
+    if (!raw) return null
+    const { ts, audio } = JSON.parse(raw)
+    if (Date.now() - ts > CACHE_TTL) return null
+    return audio
+  } catch {
+    return null
+  }
+}
+
+function writeCache(key, audio) {
+  try {
+    localStorage.setItem(LS_KEY_PREFIX + key, JSON.stringify({ ts: Date.now(), audio }))
+  } catch {}
+}
+
 export default function APlayerClient({
   playlistId = '737648214',
   server = 'netease',
@@ -34,19 +55,25 @@ export default function APlayerClient({
         }
 
         if (!state.audio || state.key !== cacheKey) {
-          const response = await fetch(metingUrl)
-          if (!response.ok) {
-            throw new Error(`Meting API error: ${response.status}`)
-          }
+          const cached = readCache(cacheKey)
+          if (cached) {
+            state.audio = cached
+          } else {
+            const response = await fetch(metingUrl)
+            if (!response.ok) {
+              throw new Error(`Meting API error: ${response.status}`)
+            }
 
-          const data = await response.json()
-          state.audio = data.map((song) => ({
-            name: song.title || song.name,
-            artist: song.artist || song.author,
-            url: song.url,
-            cover: song.pic || song.cover,
-            lrc: song.lrc,
-          }))
+            const data = await response.json()
+            state.audio = data.map((song) => ({
+              name: song.title || song.name,
+              artist: song.artist || song.author,
+              url: song.url,
+              cover: song.pic || song.cover,
+              lrc: song.lrc,
+            }))
+            writeCache(cacheKey, state.audio)
+          }
         }
 
         if (state.instance) {

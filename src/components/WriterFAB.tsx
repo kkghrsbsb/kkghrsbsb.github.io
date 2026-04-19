@@ -1,5 +1,7 @@
 import { marked } from 'marked'
 import { useEffect, useRef, useState } from 'react'
+
+marked.use({ gfm: true, breaks: false })
 import { GITHUB_CLIENT_ID, OAUTH_SCOPE, WORKER_URL } from '@/lib/writer-config'
 
 // ---- types ----
@@ -153,6 +155,7 @@ export default function WriterFAB() {
 
   const [isMobile, setIsMobile] = useState(false)
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write')
+  const [keyboardOffset, setKeyboardOffset] = useState(0)
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 767px)')
     setIsMobile(mq.matches)
@@ -161,12 +164,59 @@ export default function WriterFAB() {
     return () => mq.removeEventListener('change', handler)
   }, [])
 
+  useEffect(() => {
+    document.body.style.overflow = open ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [open])
+
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const update = () => {
+      setKeyboardOffset(Math.max(0, window.innerHeight - vv.offsetTop - vv.height))
+    }
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+    }
+  }, [])
+
   const [submitting, setSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null)
 
   const editorRef = useRef<HTMLTextAreaElement>(null)
+  const previewRef = useRef<HTMLDivElement>(null)
+  const syncingRef = useRef<'editor' | 'preview' | null>(null)
   const imgInputRef = useRef<HTMLInputElement>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!open || isMobile) return
+    const editor = editorRef.current
+    const preview = previewRef.current
+    if (!editor || !preview) return
+
+    const syncScroll = (source: 'editor' | 'preview') => () => {
+      if (syncingRef.current && syncingRef.current !== source) return
+      syncingRef.current = source
+      const el = source === 'editor' ? editor : preview
+      const target = source === 'editor' ? preview : editor
+      const pct = el.scrollTop / (el.scrollHeight - el.clientHeight || 1)
+      target.scrollTop = pct * (target.scrollHeight - target.clientHeight)
+      requestAnimationFrame(() => { syncingRef.current = null })
+    }
+
+    const onEditorScroll = syncScroll('editor')
+    const onPreviewScroll = syncScroll('preview')
+    editor.addEventListener('scroll', onEditorScroll)
+    preview.addEventListener('scroll', onPreviewScroll)
+    return () => {
+      editor.removeEventListener('scroll', onEditorScroll)
+      preview.removeEventListener('scroll', onPreviewScroll)
+    }
+  }, [open, isMobile])
 
   useEffect(() => {
     setSession(localStorage.getItem('writer_session'))
@@ -301,7 +351,7 @@ export default function WriterFAB() {
         onClick={handleLogin}
         title={isDev ? '站长登录（dev）' : '站长登录'}
         style={{
-          position: 'fixed', bottom: '1.5rem', left: '1.5rem',
+          position: 'fixed', bottom: `${24 + keyboardOffset}px`, left: '1.5rem',
           width: '2.5rem', height: '2.5rem', borderRadius: '9999px',
           background: 'transparent',
           border: '1px solid color-mix(in oklab, currentColor 20%, transparent)',
@@ -324,7 +374,7 @@ export default function WriterFAB() {
         onClick={() => setOpen(!open)}
         title="写文章"
         style={{
-          position: 'fixed', bottom: '1.5rem', left: '1.5rem',
+          position: 'fixed', bottom: `${24 + keyboardOffset}px`, left: '1.5rem',
           width: '3rem', height: '3rem', borderRadius: '9999px',
           background: 'var(--foreground)', color: 'var(--background)',
           border: 'none', cursor: 'pointer', display: 'flex',
@@ -594,7 +644,8 @@ export default function WriterFAB() {
                   }}>预览</div>
                 )}
                 <div
-                  className="prose max-w-none"
+                  ref={previewRef}
+                  className="prose max-w-none writer-preview"
                   style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '1rem 0.75rem' : '1rem',
                     WebkitOverflowScrolling: 'touch' }}
                   dangerouslySetInnerHTML={{
