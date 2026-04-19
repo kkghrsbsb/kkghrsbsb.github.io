@@ -1,0 +1,18 @@
+---
+import '@/styles/global.css'
+import '@/styles/typography.css'
+import Head from '@/components/Head.astro'
+import WriterPage from '@/components/WriterPage'
+import { SITE } from '@/consts'
+---
+
+<!doctype html>
+<html class="bg-background text-foreground scheme-light-dark" lang={SITE.locale}>
+  <Head>
+    <title>写文章 | {SITE.title}</title>
+    <meta name="robots" content="noindex, nofollow" />
+  </Head>
+  <body style="margin:0;padding:0;overflow:hidden;">
+    <WriterPage client:only="react" />
+  </body>
+</html>

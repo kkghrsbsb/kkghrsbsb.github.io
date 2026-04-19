@@ -7,6 +7,7 @@
 
 - [方案]()
   - [博客写作入口（FAB + GitHub OAuth）](./plan/2026-04-blog-writer-fab.md)
+  - [主页相框虚拟宠物](./plan/2026-04-home-virtual-pet.md)
 
 - [解释说明]()
 

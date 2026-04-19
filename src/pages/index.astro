@@ -1,6 +1,7 @@
 ---
 import APlayer from '@/components/APlayer.astro'
 import BlogCard from '@/components/BlogCard.astro'
+import FramePet from '@/components/FramePet.astro'
 import HomeIntroStyles from '@/components/HomeIntroStyles.astro'
 import Link from '@/components/Link.astro'
 import PageHead from '@/components/PageHead.astro'
@@ -28,6 +29,7 @@ const blog = await getRecentPosts(SITE.featuredPostCount)
     </div>
 
     <figure class="frame">
+      <FramePet />
       <div class="frame-paper">
         <Image
           src={taihuImg}

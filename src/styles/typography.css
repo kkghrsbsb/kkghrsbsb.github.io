@@ -27,7 +27,7 @@
 
 @layer components {
   .prose {
-    @apply text-foreground text-base leading-7;
+    @apply text-foreground text-[1.0625rem] leading-7;
 
     :where(p):not(:where(.not-prose, .not-prose *)) {
       @apply text-foreground/80 my-5;

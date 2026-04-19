@@ -1,0 +1,138 @@
+---
+---
+
+<div class="frame-pet" id="frame-pet" aria-hidden="true">
+  <!--
+    Grid: 10 cols × 15 rows at 4 px/pixel.
+    viewBox 0 0 46 62  (body 32 px wide + 14 px tail room; 60 px tall + buffer)
+    CSS display: 56 px wide → scale ≈ 1.22×
+  -->
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 46 62"
+    class="pet-svg"
+    shape-rendering="crispEdges"
+  >
+    <!-- ── LEFT EAR (cream, narrow triangle) ── -->
+    <rect x="8"  y="0" width="4" height="4"  fill="#F2EDE8"/>
+    <rect x="4"  y="4" width="8" height="8"  fill="#F2EDE8"/>
+
+    <!-- ── RIGHT EAR (black — calico) ── -->
+    <rect x="28" y="0" width="4" height="4"  fill="#262626"/>
+    <rect x="24" y="4" width="8" height="8"  fill="#262626"/>
+
+    <!-- ── HEAD ── cols 1-8 (x 4..36), rows 2-7 (y 8..32) ── -->
+    <!-- cream left half -->
+    <rect x="4"  y="8" width="16" height="24" fill="#F2EDE8"/>
+    <!-- orange right half -->
+    <rect x="20" y="8" width="16" height="24" fill="#E07B39"/>
+
+    <!-- ── BODY ── cols 2-7 (x 8..32), rows 8-12 (y 32..52) ── -->
+    <rect x="8"  y="32" width="12" height="20" fill="#F2EDE8"/>
+    <rect x="20" y="32" width="12" height="20" fill="#E07B39"/>
+    <!-- black patch lower-left body -->
+    <rect x="8"  y="40" width="8"  height="12" fill="#262626"/>
+
+    <!-- ── PAWS ── rows 13-14 (y 52..60) ── -->
+    <rect x="8"  y="52" width="8" height="8" fill="#F2EDE8"/>
+    <rect x="20" y="52" width="8" height="8" fill="#E07B39"/>
+
+    <!-- ── EYES ── row 4 (y 16) ── -->
+    <!-- left -->
+    <rect x="8"  y="16" width="8" height="6" fill="#57A560"/>
+    <rect x="10" y="16" width="4" height="6" fill="#1A1A1A"/>
+    <!-- right (on orange) -->
+    <rect x="24" y="16" width="8" height="6" fill="#57A560"/>
+    <rect x="26" y="16" width="4" height="6" fill="#1A1A1A"/>
+
+    <!-- ── NOSE ── -->
+    <rect x="16" y="26" width="8" height="4" fill="#F4A5A5"/>
+
+    <!-- ── WHISKERS ── -->
+    <line x1="16" y1="27" x2="2"  y2="24" stroke="#C8C0B8" stroke-width="1"/>
+    <line x1="16" y1="29" x2="2"  y2="32" stroke="#C8C0B8" stroke-width="1"/>
+    <line x1="24" y1="27" x2="38" y2="24" stroke="#C8C0B8" stroke-width="1"/>
+    <line x1="24" y1="29" x2="38" y2="32" stroke="#C8C0B8" stroke-width="1"/>
+
+    <!-- ── TAIL (animated around base) ── -->
+    <g class="pet-tail">
+      <path d="M 32,40 Q 42,34 38,22"
+            stroke="#F2EDE8" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M 32,39 Q 42,33 38,21"
+            stroke="#E07B39" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </g>
+  </svg>
+</div>
+
+<style>
+  .frame-pet {
+    position: absolute;
+    bottom: 6px;
+    right: 12px;
+    z-index: 10;
+    cursor: pointer;
+    user-select: none;
+    pointer-events: auto;
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.2));
+  }
+
+  .pet-svg {
+    display: block;
+    width: 56px;
+    height: auto;
+    transition: transform 0.15s ease;
+  }
+
+  .frame-pet:hover .pet-svg {
+    transform: translateY(-3px) scale(1.06);
+  }
+
+  .pet-tail {
+    transform-origin: 32px 40px;
+    animation: pet-tail-wag 1.8s ease-in-out infinite;
+  }
+
+  @keyframes pet-tail-wag {
+    0%,  100% { transform: rotate(0deg);   }
+    30%        { transform: rotate(24deg);  }
+    70%        { transform: rotate(-16deg); }
+  }
+
+  .frame-pet.pet-jumping {
+    animation: pet-jump 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  }
+
+  @keyframes pet-jump {
+    0%   { transform: translateY(0)     scaleX(1);    }
+    30%  { transform: translateY(-16px) scaleX(0.92); }
+    60%  { transform: translateY(-10px) scaleX(0.97); }
+    85%  { transform: translateY(3px)   scaleX(1.04); }
+    100% { transform: translateY(0)     scaleX(1);    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pet-tail              { animation: none; }
+    .frame-pet.pet-jumping { animation: none; }
+    .frame-pet:hover .pet-svg { transform: none; }
+  }
+</style>
+
+<script>
+  function initFramePet() {
+    const pet = document.getElementById('frame-pet')
+    if (!pet || pet.dataset.initialized) return
+    pet.dataset.initialized = 'true'
+
+    const jump = () => {
+      if (pet.classList.contains('pet-jumping')) return
+      pet.classList.add('pet-jumping')
+      pet.addEventListener('animationend', () => pet.classList.remove('pet-jumping'), { once: true })
+    }
+
+    pet.addEventListener('click', jump)
+    pet.addEventListener('touchstart', (e) => { e.preventDefault(); jump() }, { passive: false })
+  }
+
+  document.addEventListener('astro:page-load', initFramePet)
+  if (document.readyState !== 'loading') initFramePet()
+</script>

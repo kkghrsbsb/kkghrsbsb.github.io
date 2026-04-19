@@ -286,7 +286,7 @@ const { posts } = Astro.props
     document.addEventListener('pointerdown', (event) => {
       const target = event.target as Node | null
       if (!target) return
-      pointerDownInsidePanel = panel.contains(target)
+      pointerDownInsidePanel = input.contains(target) || results.contains(target)
       if (pointerDownInsidePanel) return
       cancelSearch()
       input.blur()
