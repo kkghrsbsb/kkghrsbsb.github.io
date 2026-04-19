@@ -67,7 +67,8 @@ async function handleSubmit(request, env, cors) {
   const token = await env.SESSIONS.get(session_id)
   if (!token) return json({ error: 'invalid or expired session' }, 401, cors)
 
-  const apiBase = `https://api.github.com/repos/${env.REPO}/contents/${path}`
+  const encodedPath = path.split('/').map(encodeURIComponent).join('/')
+  const apiBase = `https://api.github.com/repos/${env.REPO}/contents/${encodedPath}`
   const headers = {
     Authorization: `Bearer ${token}`,
     'User-Agent': 'blog-auth-worker',

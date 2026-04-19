@@ -12,5 +12,5 @@ id = "17c07f0834ce4b5aa3d736520f3d6860"
 [vars]
 GITHUB_CLIENT_ID = "Ov23lixF2VsP8QM5AGRx"
 ALLOWED_LOGIN = "kkghrsbsb"
-ALLOWED_ORIGIN = "https://kkghrsbsb.com"
+ALLOWED_ORIGIN = "https://kkghrsbsb.github.io"
 REPO = "kkghrsbsb/kkghrsbsb.github.io"
