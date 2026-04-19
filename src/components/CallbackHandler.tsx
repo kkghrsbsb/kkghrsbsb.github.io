@@ -13,7 +13,9 @@ export default function CallbackHandler() {
 
     if (!code || !state || state !== storedState) {
       setStatus('error')
-      setMessage('Invalid state or missing code. Please try again.')
+      setMessage(
+        `code=${code ?? 'null'} | state=${state ?? 'null'} | stored=${storedState ?? 'null'}`,
+      )
       return
     }
 
