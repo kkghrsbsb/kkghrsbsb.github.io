@@ -11,7 +11,7 @@ function buildOAuthUrl(returnTo: string) {
     client_id: GITHUB_CLIENT_ID,
     scope: OAUTH_SCOPE,
     state,
-    redirect_uri: `${window.location.origin}/auth/callback`,
+    redirect_uri: `${window.location.origin}/auth/callback/`,
   })
   return `https://github.com/login/oauth/authorize?${params}`
 }
