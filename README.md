@@ -89,3 +89,45 @@ Next-Generation full-text search library for Browser and Node.js
 - https://github.com/nextapps-de/flexsearch
 
 Create a search box embedded in blog/ page, allowing users to search for blog posts by title, tags, and description ...
+
+## Writer
+
+A lightweight in-browser Markdown editor for publishing posts directly to GitHub, protected by GitHub OAuth.
+
+**Entry point** — `WriterFAB` (React Island, `client:only="react"`) renders a fixed FAB button at bottom-left. Unauthenticated visitors see a semi-transparent lock icon; clicking it initiates GitHub OAuth. Authenticated users see an edit icon that navigates to `/write`.
+
+**Standalone page** — `/write` (`src/pages/write.astro`) is a bare HTML page (no Layout wrapper, `height: 100dvh`, `overflow: hidden`) that mounts `WriterPage`. This avoids the mobile scroll-through problem that a full-screen overlay would cause.
+
+**Auth flow** — GitHub OAuth with `gist` scope. The Cloudflare Worker at `WORKER_URL` exchanges the OAuth code for an access token and stores the session in KV. `localStorage` holds `writer_session` on the client; the Worker validates it on each publish request.
+
+**Editor** — Split-pane on desktop (editor left, preview right), tab-switching on mobile. Preview uses `marked` with GFM enabled. Editor and preview scroll positions are synchronized via scroll-percentage to avoid ping-pong.
+
+**Publish** — Builds a Markdown file with YAML frontmatter (title, slug, description, tags, date, cover image path), then calls the Worker to commit it to the GitHub repo via the Contents API.
+
+Key files:
+- `src/components/WriterFAB.tsx` — FAB button, OAuth redirect
+- `src/components/WriterPage.tsx` — full editor UI
+- `src/pages/write.astro` — standalone page shell
+- `src/lib/writer-config.ts` — `GITHUB_CLIENT_ID`, `WORKER_URL`, `OAUTH_SCOPE`
+
+## Calico Cat Pet
+
+An interactive pixel-art calico cat (`三花猫`) that lives on the polaroid photo frame on the homepage.
+
+**Rendering** — Pure inline SVG on a 10×15 pixel grid (4 px/pixel, viewBox `0 0 46 62`, displayed at 56 px). No external images or JS libraries. Three-color calico pattern: cream base, orange right-side patches, black right ear and lower-left body patch.
+
+**Appear animation** — 1 second after page load, the cat jumps out from inside the frame (`translateY` + `scaleY` spring, `cubic-bezier(0.34, 1.5, 0.64, 1)`). The appear animation is isolated to a `.pet-appearing` class that JS adds and removes, preventing it from restarting when other animation classes are toggled.
+
+**Walk interaction** — Clicking anywhere on `.frame` (the polaroid element) causes the cat to walk horizontally to the clicked X position along the bottom edge. Key details:
+- After appear, positioning switches from `right: 12px` to an equivalent `left: Npx` so JS can freely update the horizontal coordinate.
+- Movement uses a `requestAnimationFrame` loop with ease-in-out easing at 110 px/s. Mid-walk clicks cancel the current RAF and redirect immediately.
+- Walking direction is injected as a CSS custom property (`--pet-dir: 1 | -1`) on the wrapper; the walk-bob keyframes read it via `scaleX(var(--pet-dir))` to flip the sprite without a separate DOM element.
+- On arrival: squat-and-bounce landing animation, direction resets to front-facing, tail wag resumes.
+
+**Tail wag** — CSS `animation` on the `<g class="pet-tail">` SVG element, initially `animation-play-state: paused`. JS sets it to `running` after the appear animation completes, and pauses it again during walking.
+
+**Accessibility** — `prefers-reduced-motion`: skips all animations, shows the cat immediately, teleports instead of walking. The wrapper has `aria-hidden="true"`.
+
+Key files:
+- `src/components/FramePet.astro` — SVG, CSS animations, JS interaction logic
+- `src/pages/index.astro` — mounts `<FramePet />` inside `<figure class="frame">`

@@ -2,18 +2,33 @@
 ---
 
 <div class="frame-pet" id="frame-pet" aria-hidden="true">
-  <!--
-    Grid: 10 cols × 15 rows at 4 px/pixel.
-    viewBox 0 0 46 62  (body 32 px wide + 14 px tail room; 60 px tall + buffer)
-    CSS display: 56 px wide → scale ≈ 1.22×
-  -->
+  <div class="pet-bubble" id="pet-bubble" aria-hidden="true"></div>
+  <button
+    class="pet-mute-btn"
+    id="pet-mute-btn"
+    title="喵叫静音"
+    aria-label="切换喵叫音效"
+    aria-pressed="false"
+  >
+    <!-- 有声 -->
+    <svg class="icon-sound" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M1 3.8h1.4l2-1.8v6l-2-1.8H1z"/>
+      <path d="M6.2 3.2a2.4 2.4 0 010 3.6"/>
+    </svg>
+    <!-- 静音 -->
+    <svg class="icon-mute" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M1 3.8h1.4l2-1.8v6l-2-1.8H1z"/>
+      <line x1="6.5" y1="3.5" x2="9" y2="6.5"/>
+      <line x1="9"   y1="3.5" x2="6.5" y2="6.5"/>
+    </svg>
+  </button>
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 46 62"
     class="pet-svg"
     shape-rendering="crispEdges"
   >
-    <!-- ── LEFT EAR (cream, narrow triangle) ── -->
+    <!-- ── LEFT EAR (cream) ── -->
     <rect x="8"  y="0" width="4" height="4"  fill="#F2EDE8"/>
     <rect x="4"  y="4" width="8" height="8"  fill="#F2EDE8"/>
 
@@ -21,27 +36,22 @@
     <rect x="28" y="0" width="4" height="4"  fill="#262626"/>
     <rect x="24" y="4" width="8" height="8"  fill="#262626"/>
 
-    <!-- ── HEAD ── cols 1-8 (x 4..36), rows 2-7 (y 8..32) ── -->
-    <!-- cream left half -->
+    <!-- ── HEAD ── -->
     <rect x="4"  y="8" width="16" height="24" fill="#F2EDE8"/>
-    <!-- orange right half -->
     <rect x="20" y="8" width="16" height="24" fill="#E07B39"/>
 
-    <!-- ── BODY ── cols 2-7 (x 8..32), rows 8-12 (y 32..52) ── -->
+    <!-- ── BODY ── -->
     <rect x="8"  y="32" width="12" height="20" fill="#F2EDE8"/>
     <rect x="20" y="32" width="12" height="20" fill="#E07B39"/>
-    <!-- black patch lower-left body -->
     <rect x="8"  y="40" width="8"  height="12" fill="#262626"/>
 
-    <!-- ── PAWS ── rows 13-14 (y 52..60) ── -->
+    <!-- ── PAWS ── -->
     <rect x="8"  y="52" width="8" height="8" fill="#F2EDE8"/>
     <rect x="20" y="52" width="8" height="8" fill="#E07B39"/>
 
-    <!-- ── EYES ── row 4 (y 16) ── -->
-    <!-- left -->
+    <!-- ── EYES ── -->
     <rect x="8"  y="16" width="8" height="6" fill="#57A560"/>
     <rect x="10" y="16" width="4" height="6" fill="#1A1A1A"/>
-    <!-- right (on orange) -->
     <rect x="24" y="16" width="8" height="6" fill="#57A560"/>
     <rect x="26" y="16" width="4" height="6" fill="#1A1A1A"/>
 
@@ -54,7 +64,7 @@
     <line x1="24" y1="27" x2="38" y2="24" stroke="#C8C0B8" stroke-width="1"/>
     <line x1="24" y1="29" x2="38" y2="32" stroke="#C8C0B8" stroke-width="1"/>
 
-    <!-- ── TAIL (animated around base) ── -->
+    <!-- ── TAIL ── -->
     <g class="pet-tail">
       <path d="M 32,40 Q 42,34 38,22"
             stroke="#F2EDE8" stroke-width="4" fill="none" stroke-linecap="round"/>
@@ -65,72 +75,370 @@
 </div>
 
 <style>
+  /*
+   * --pet-dir: 1 = 朝右（默认）; -1 = 朝左（walking 时由 JS 注入）
+   * 出现动画只在 .pet-appearing 类上，避免 pet-jumping/walking 结束后重启动画
+   */
   .frame-pet {
+    --pet-dir: 1;
     position: absolute;
     bottom: 6px;
-    right: 12px;
+    right: 12px;       /* unlock() 后切换为 left */
     z-index: 10;
     cursor: pointer;
     user-select: none;
-    pointer-events: auto;
+    opacity: 0;
+    pointer-events: none;
     filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.2));
   }
 
+  /* ── 出现 ── */
+  .frame-pet.pet-appearing {
+    animation: pet-appear 0.6s cubic-bezier(0.34, 1.5, 0.64, 1) both;
+  }
+  @keyframes pet-appear {
+    0%   { opacity: 0; transform: translateY(28px) scaleX(0.82) scaleY(0.6); }
+    70%  { opacity: 1; transform: translateY(-6px)  scaleX(0.97) scaleY(1.04); }
+    100% { opacity: 1; transform: translateY(0)     scale(1); }
+  }
+
+  /* ── 语录气泡 ── */
+  .pet-bubble {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%) translateY(6px);
+    white-space: nowrap;
+    padding: 4px 9px;
+    border-radius: 8px;
+    border: 1px solid color-mix(in oklab, var(--foreground) 10%, transparent);
+    background: color-mix(in oklab, var(--background) 85%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--muted-foreground);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.22s ease-out, transform 0.22s ease-out;
+    z-index: 13;
+  }
+  .pet-bubble.pet-bubble-show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  /* 小三角 */
+  .pet-bubble::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: color-mix(in oklab, var(--background) 85%, transparent);
+  }
+
+  /* ── 静音按钮（悬浮时出现，点击不触发走动） ── */
+  .pet-mute-btn {
+    position: absolute;
+    top: 2px;
+    right: 0;
+    width: 16px;
+    height: 16px;
+    padding: 2px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.75);
+    opacity: 0;
+    transition: opacity 0.18s;
+    z-index: 12;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .frame-pet:hover .pet-mute-btn { opacity: 1; }
+  .pet-mute-btn:hover             { color: #fff; }
+  .pet-mute-btn .icon-sound,
+  .pet-mute-btn .icon-mute        { width: 10px; height: 10px; display: block; }
+  .pet-mute-btn .icon-mute        { display: none; }
+  .pet-mute-btn.is-muted .icon-sound { display: none; }
+  .pet-mute-btn.is-muted .icon-mute  { display: block; }
+
+  /* ── SVG 基础 ── */
   .pet-svg {
     display: block;
     width: 56px;
     height: auto;
     transition: transform 0.15s ease;
   }
-
-  .frame-pet:hover .pet-svg {
+  .frame-pet:not(.pet-walking):not(.pet-landing):hover .pet-svg {
     transform: translateY(-3px) scale(1.06);
   }
 
+  /* ── 尾巴：初始暂停，出现后由 JS 启动 ── */
   .pet-tail {
     transform-origin: 32px 40px;
     animation: pet-tail-wag 1.8s ease-in-out infinite;
+    animation-play-state: paused;
   }
-
   @keyframes pet-tail-wag {
     0%,  100% { transform: rotate(0deg);   }
     30%        { transform: rotate(24deg);  }
     70%        { transform: rotate(-16deg); }
   }
 
-  .frame-pet.pet-jumping {
-    animation: pet-jump 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  /* ── 走路：身体上下抖动 + 方向翻转（scaleX 用 CSS 变量） ── */
+  .frame-pet.pet-walking .pet-svg {
+    animation: pet-walk-bob 0.26s ease-in-out infinite;
+    transition: none;
+  }
+  @keyframes pet-walk-bob {
+    0%, 100% { transform: scaleX(var(--pet-dir)) translateY(0)    scaleY(1);    }
+    40%       { transform: scaleX(var(--pet-dir)) translateY(-6px) scaleY(1.06); }
+    65%       { transform: scaleX(var(--pet-dir)) translateY(-4px) scaleY(1.03); }
   }
 
-  @keyframes pet-jump {
-    0%   { transform: translateY(0)     scaleX(1);    }
-    30%  { transform: translateY(-16px) scaleX(0.92); }
-    60%  { transform: translateY(-10px) scaleX(0.97); }
-    85%  { transform: translateY(3px)   scaleX(1.04); }
-    100% { transform: translateY(0)     scaleX(1);    }
+  /* ── 落地：蹲压 → 弹起 → 稳定 ── */
+  .frame-pet.pet-landing .pet-svg {
+    animation: pet-land 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    transition: none;
+  }
+  @keyframes pet-land {
+    0%   { transform: translateY(10px) scaleX(1.12) scaleY(0.72); }
+    45%  { transform: translateY(-5px) scaleX(0.95) scaleY(1.07); }
+    72%  { transform: translateY(2px)  scaleX(1.02) scaleY(0.97); }
+    100% { transform: translateY(0)    scaleX(1)    scaleY(1);    }
   }
 
+  /* ── reduced-motion 降级 ── */
   @media (prefers-reduced-motion: reduce) {
-    .pet-tail              { animation: none; }
-    .frame-pet.pet-jumping { animation: none; }
-    .frame-pet:hover .pet-svg { transform: none; }
+    .frame-pet                { animation: none !important; opacity: 1 !important; pointer-events: auto !important; }
+    .pet-tail                 { animation: none; }
+    .frame-pet.pet-walking .pet-svg,
+    .frame-pet.pet-landing .pet-svg { animation: none !important; }
   }
 </style>
 
 <script>
+  // ── 语录池 ──
+  const QUOTES = [
+    '喵～', '...zZZ', '呼噜呼噜', '又来啦', '摸摸我',
+    '我在看你', '肚子饿了', '喵？',
+    '这里有好文章', '随便逛逛吧', '有新帖子哦', '记得收藏～',
+    '欢迎回来', '别光看不说话', '代码写完了吗', '慢慢看，不急',
+  ]
+
+  function shuffle<T>(arr: T[]): T[] {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[arr[i], arr[j]] = [arr[j], arr[i]]
+    }
+    return arr
+  }
+
+  let quotePool = shuffle([...QUOTES])
+  let quoteIdx  = 0
+  function nextQuote(): string {
+    if (quoteIdx >= quotePool.length) { quotePool = shuffle([...QUOTES]); quoteIdx = 0 }
+    return quotePool[quoteIdx++]
+  }
+
+  // ── 喵叫音效（Web Audio API 合成，不干扰 APlayer） ──
+  let audioCtx: AudioContext | null = null
+  let petMuted = localStorage.getItem('pet_muted') !== '0'
+
+  function playMeow() {
+    if (petMuted) return
+    try {
+      if (!audioCtx) audioCtx = new AudioContext()
+      if (audioCtx.state === 'suspended') audioCtx.resume()
+
+      const t    = audioCtx.currentTime
+      const osc  = audioCtx.createOscillator()
+      const gain = audioCtx.createGain()
+
+      osc.connect(gain)
+      gain.connect(audioCtx.destination)
+
+      // triangle 波：含奇次泛音，比纯 sine 更有猫声质感
+      osc.type = 'triangle'
+      // 频率包络：猫叫基频在 600–900 Hz
+      // 600 → 880（"mi"上升）→ 650（"ao"下降）→ 420（尾音）
+      osc.frequency.setValueAtTime(600, t)
+      osc.frequency.linearRampToValueAtTime(880, t + 0.16)
+      osc.frequency.linearRampToValueAtTime(650, t + 0.30)
+      osc.frequency.linearRampToValueAtTime(420, t + 0.50)
+
+      // 响度包络
+      gain.gain.setValueAtTime(0, t)
+      gain.gain.linearRampToValueAtTime(0.26, t + 0.03)
+      gain.gain.setValueAtTime(0.26, t + 0.32)
+      gain.gain.linearRampToValueAtTime(0, t + 0.52)
+
+      osc.start(t)
+      osc.stop(t + 0.55)
+    } catch {
+      // 音效是可选增强，静默失败
+    }
+  }
+
   function initFramePet() {
     const pet = document.getElementById('frame-pet')
     if (!pet || pet.dataset.initialized) return
     pet.dataset.initialized = 'true'
 
-    const jump = () => {
-      if (pet.classList.contains('pet-jumping')) return
-      pet.classList.add('pet-jumping')
-      pet.addEventListener('animationend', () => pet.classList.remove('pet-jumping'), { once: true })
+    const tail   = pet.querySelector<SVGGElement>('.pet-tail')
+    const bubble = document.getElementById('pet-bubble')
+    const frame  = pet.parentElement   // <figure class="frame">
+    if (!frame) return
+
+    // ── 语录气泡 ──
+    let bubbleTimer: ReturnType<typeof setTimeout> | undefined
+    const showBubble = () => {
+      if (!bubble) return
+      clearTimeout(bubbleTimer)
+      bubble.textContent = nextQuote()
+      bubble.classList.add('pet-bubble-show')
+      bubbleTimer = setTimeout(() => bubble.classList.remove('pet-bubble-show'), 1600)
     }
 
-    pet.addEventListener('click', jump)
-    pet.addEventListener('touchstart', (e) => { e.preventDefault(); jump() }, { passive: false })
+    const SPEED       = 110   // px / s
+    const MIN_WALK_PX = 14    // 小于此距离直接落地
+    let currentLeft   = 0
+    let rafId: number | null = null
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    // ── 工具函数 ──
+    const petW      = () => pet.getBoundingClientRect().width
+    const frameW    = () => frame.getBoundingClientRect().width
+    const clamp     = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
+    const easeInOut = (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
+    const setDir    = (d: 1 | -1) => pet.style.setProperty('--pet-dir', String(d))
+
+    // ── 落地动画 ──
+    const land = () => {
+      playMeow()
+      pet.classList.remove('pet-walking')
+      setDir(1)   // 恢复正面朝前
+      pet.classList.add('pet-landing')
+      if (tail) tail.style.animationPlayState = 'paused'
+
+      const onEnd = (e: AnimationEvent) => {
+        if (e.animationName !== 'pet-land') return
+        pet.removeEventListener('animationend', onEnd as EventListener)
+        pet.classList.remove('pet-landing')
+        if (tail) tail.style.animationPlayState = 'running'
+        showBubble()
+      }
+      pet.addEventListener('animationend', onEnd as EventListener)
+    }
+
+    // ── 走路至目标 X（相对于 frame 左边） ──
+    const walkTo = (clickX: number) => {
+      // 取消正在进行的走路
+      if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null }
+
+      const fw  = frameW()
+      const pw  = petW()
+      const min = 4
+      const max = fw - pw - 4
+      const target = clamp(clickX - pw / 2, min, max)
+      const dx     = target - currentLeft
+
+      if (Math.abs(dx) < MIN_WALK_PX) { land(); return }
+
+      if (reducedMotion) {
+        currentLeft = target
+        pet.style.left = currentLeft + 'px'
+        land()
+        return
+      }
+
+      const dir      = (dx > 0 ? 1 : -1) as 1 | -1
+      const duration = clamp((Math.abs(dx) / SPEED) * 1000, 150, 3000)
+
+      setDir(dir)
+      pet.classList.remove('pet-landing')
+      pet.classList.add('pet-walking')
+      if (tail) tail.style.animationPlayState = 'paused'
+
+      const startLeft = currentLeft
+      const t0 = performance.now()
+
+      const step = (now: number) => {
+        const p = Math.min((now - t0) / duration, 1)
+        currentLeft = startLeft + dx * easeInOut(p)
+        pet.style.left = currentLeft + 'px'
+        if (p < 1) { rafId = requestAnimationFrame(step) }
+        else       { rafId = null; land() }
+      }
+      rafId = requestAnimationFrame(step)
+    }
+
+    // ── 挂载 frame 点击监听 ──
+    const attachFrameListener = () => {
+      frame.style.cursor = 'pointer'
+
+      frame.addEventListener('click', (e: MouseEvent) => {
+        const rect = frame.getBoundingClientRect()
+        walkTo(e.clientX - rect.left)
+      })
+
+      frame.addEventListener('touchstart', (e: TouchEvent) => {
+        e.preventDefault()
+        const rect  = frame.getBoundingClientRect()
+        const touch = e.changedTouches[0]
+        walkTo(touch.clientX - rect.left)
+      }, { passive: false })
+    }
+
+    // ── 静音按钮 ──
+    const muteBtn = document.getElementById('pet-mute-btn')
+    if (muteBtn) {
+      if (petMuted) muteBtn.classList.add('is-muted')
+      muteBtn.setAttribute('aria-pressed', String(petMuted))
+
+      muteBtn.addEventListener('click', (e) => {
+        e.stopPropagation()   // 不触发 frame 的走动监听
+        petMuted = !petMuted
+        localStorage.setItem('pet_muted', petMuted ? '1' : '0')
+        muteBtn.classList.toggle('is-muted', petMuted)
+        muteBtn.setAttribute('aria-pressed', String(petMuted))
+      })
+    }
+
+    // ── 出现动画结束后解锁交互 ──
+    const unlock = () => {
+      // 将 right 定位转换为等效 left（保持位置不变）
+      currentLeft = frameW() - 12 - petW()
+      pet.style.right = 'auto'
+      pet.style.left  = currentLeft + 'px'
+
+      pet.style.opacity      = '1'
+      pet.style.pointerEvents = 'auto'
+      if (tail) tail.style.animationPlayState = 'running'
+      attachFrameListener()
+      showBubble()   // 首次出现问候
+    }
+
+    // ── 启动 ──
+    if (reducedMotion) {
+      unlock()
+    } else {
+      setTimeout(() => {
+        pet.classList.add('pet-appearing')
+
+        const onAppear = (e: AnimationEvent) => {
+          if (e.animationName !== 'pet-appear') return
+          pet.removeEventListener('animationend', onAppear as EventListener)
+          pet.classList.remove('pet-appearing')
+          unlock()
+        }
+        pet.addEventListener('animationend', onAppear as EventListener)
+      }, 1000)
+    }
   }
 
   document.addEventListener('astro:page-load', initFramePet)
