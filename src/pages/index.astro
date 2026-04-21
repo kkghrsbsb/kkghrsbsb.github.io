@@ -73,3 +73,16 @@ const blog = await getRecentPosts(SITE.featuredPostCount)
     </section>
   </section>
 </Layout>
+
+<script>
+  function initFrameImg() {
+    const img = document.querySelector<HTMLImageElement>('.frame-img')
+    if (!img) return
+    if (img.complete) {
+      img.classList.add('loaded')
+    } else {
+      img.addEventListener('load', () => img.classList.add('loaded'), { once: true })
+    }
+  }
+  document.addEventListener('astro:page-load', initFrameImg)
+</script>

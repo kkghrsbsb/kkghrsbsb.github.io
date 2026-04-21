@@ -92,6 +92,11 @@
     width: 100%;
     height: auto;
     background: color-mix(in oklab, var(--background) 85%, var(--foreground) 15%);
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  .frame-img.loaded {
+    opacity: 1;
   }
 
   .frame-cap {
